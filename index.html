@@ -1,0 +1,197 @@
+
+	<!-- Name: Smitkumar Patel
+		StudentID: 000737859
+	 -->
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<title>Niagara Museums</title>
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+		<meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+		<script src="museum.js"></script>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<style>
+		#myMap
+		{
+			width:auto;
+			height: 95vh;
+		}
+		#sideBar{
+			width: auto;
+			height: 95vh;
+			background: #133337;
+			color: #ffe4e1;
+			overflow: scroll;
+			overflow-y: auto;
+			overflow-x:hidden;
+		}
+		#resultName{
+			color: lightblue;
+		}
+		.MicrosoftMap .directionsInput{
+			width: 12px;
+		}
+		</style>
+	</head>
+	<body>
+		<script>
+		var map , infobox, pushpin;
+		// Load Map
+		function loadMap() {
+			map = new Microsoft.Maps.Map(document.getElementById('myMap'), {});
+			navigator.geolocation.getCurrentPosition(function (position) {
+				userLatitude = position.coords.latitude;
+				userLongitude = position.coords.longitude;
+				var location = new Microsoft.Maps.Location(userLatitude, userLongitude);
+				var pushpin = new Microsoft.Maps.Pushpin(location, { color: 'green'});
+				Microsoft.Maps.Events.addHandler(pushpin, 'click', function () {
+					var infobox = new Microsoft.Maps.Infobox(location, { title: "Current Location of User" });
+					infobox.setMap(map);
+				});
+				map.entities.push(pushpin);
+			},
+			//Error Message for User Location
+			function (error) {
+				var errorMessage;
+				switch (error.code) {
+					case error.PERMISSION_DENIED:
+					errorMessage = "User denied the request for Geolocation."
+					break;
+					case error.POSITION_UNAVAILABLE:
+					errorMessage = "Location information is unavailable."
+					break;
+					case error.TIMEOUT:
+					errorMessage = "The request to get user location timed out."
+					break;
+					case error.UNKNOWN_ERROR:
+					errorMessage = "An unknown error occurred."
+					break;
+				}
+				$("#userPosition").addClass('bg-warning text-dark').html("<p>" + errorMessage + "</p>");
+			});
+			// Pushpin set and click on push pin results with information
+			museumList.forEach(function (element) {
+				var location = new Microsoft.Maps.Location(element.LATITUDE, element.LONGITUDE);
+				var pushpin = new Microsoft.Maps.Pushpin(location);
+				pushpin.metadata = {
+					title: element.NAME,
+					Address: element.ADDRESS,
+					Muncipality: element.MUNICIPALITY,
+					Phone: element.PHONE
+				};
+				// Event Handler of pushpin to show details
+				Microsoft.Maps.Events.addHandler(pushpin, 'click', function (element) {
+					if (element.target.metadata) {
+						$('#name').html(element.target.metadata.title);
+						$('#address').html(element.target.metadata.Address);
+						$('#muncipality').html(element.target.metadata.Muncipality);
+						$('#phone').html(element.target.metadata.Phone);
+					}
+				});
+				map.entities.push(pushpin);
+			});
+			//Direction Panel displaying
+			Microsoft.Maps.loadModule('Microsoft.Maps.Directions', function () {
+				directionsManager = new Microsoft.Maps.Directions.DirectionsManager(map);
+				directionsManager.setRenderOptions({ itineraryContainer: '#directionsItinerary' });
+				directionsManager.showInputPanel('directionsPanel');
+			});
+		}
+		// Traffic Button
+		function trafficShow(){
+			Microsoft.Maps.loadModule('Microsoft.Maps.Traffic', function () {
+            //Create an instance of the traffic manager and bind to map.
+            trafficManager = new Microsoft.Maps.Traffic.TrafficManager(map);
+            //Display the traffic data layer.
+            trafficManager.show();
+			});
+		}
+		$(document).ready(function () {
+			// Search bar results
+			$("#search").keyup(function () {
+				$("#info").html("");
+				var value = $("#search").val().toLowerCase();
+				museumList.forEach(function (element) {
+					if (element.NAME != null) {
+						var isNameMatch = element.NAME.toLowerCase().includes(value);
+						var isAddressMatch = element.ADDRESS.toLowerCase().includes(value);
+						if (isNameMatch || isAddressMatch) {
+							var template = $($("#resultItem").html());
+							template.find("#resultName").html(element.NAME);
+							template.find("#resultName").val(element.ID);
+							template.find("#resultAddress").html(element.ADDRESS);
+							$("#info").append(template);
+						}
+					}
+				});
+			});
+		});
+		// click on museum list an append the list
+		$("body").on("click", "#resultName", function () {
+			var id = $(this).val();
+			console.log(id);
+			museumList.forEach(function (element) {
+				if (element.ID == id) {
+					$('#name').html(element.NAME);
+					$('#address').html(element.ADDRESS);
+					$('#muncipality').html(element.MUNICIPALITY);
+					$('#phone').html(element.PHONE);
+				}
+			});
+		});
+	</script>
+	<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+		<a class="navbar-brand" href="#"><strong>Niagara Museums</strong></a>
+		<span id="userPosition"></span>
+		<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navigation" aria-controls="navigation" aria-expanded="false" aria-label="Toggle navigation">
+			<span class="navbar-toggler-icon"></span>
+		</button>
+		<div class="collapse navbar-collapse" id="navigation">
+			<ul class="navbar-nav mr-auto mt-2 mt-lg-0">
+			<button onclick="trafficShow()">Show Traffic</button></ul>
+			<form class="form-inline my-2 my-lg-0">
+				<input class="form-control mr-sm-2" type="search" id="search" placeholder="Search Museum" aria-label="Search">
+
+			</form>
+		</div>
+	</nav>
+	<div class="row mr-0">
+		<div class="col container-fluid" id="myMap"></div>
+		<!-- Side Bar -->
+		<div id="sideBar" class="col-lg-3 col-md-3 col-sm-4 col-7">
+			<h1 style="text-align: center; margin-bottom: 2rem; height: 10vh;"><strong>Niagara Museums</strong></h1>
+			<div id="info" style="height: 20vh;overflow: scroll; overflow-x:hidden; overflow-y: auto;">
+				<p class="text-center p-2"> Welcome to Niagara Region <br />Click the push pin on the map to display the Museum information or search the
+					Musuem name or address in the search box above</p>
+					<img src="niagara.jpg" style="width:300px;height:100px; ">
+			</div>
+			<!-- Direction Panel -->
+			<div style="" >
+					<div id="directionsPanel"></div>
+					<div id="directionsItinerary"></div>
+			</div>
+			<!-- List Down the informations -->
+			<div style="height:20vh; position:relative;">
+				<h4>Information:</h4>
+				<span>Name:</span><li style="list-style-type: none; color: lightblue;"id="name"></li>
+				<span>Address:</span><li style="list-style-type: none; color: lightblue;"id="address"></li>
+				<span>Municipality:</span><li style="list-style-type: none; color: lightblue;" id="muncipality"></li>
+				<span>Phone:</span><li style="list-style-type: none; color: lightblue;" id="phone"></li>
+			</div>
+			<!-- Template for results came from search bar -->
+			<Template id="resultItem">
+				<div class="border-bottom" id="itemSearch" style="padding: 0px; margin-bottom: 0px;">
+					<a class="d-inline" id="resultName" href="#" data-id=""></a>
+					<p class="d-inline" id="resultAddress"></p>
+				</div>
+			</Template>
+		</div>
+		<!-- Optional JavaScript -->
+		<!-- jQuery first, then Popper.js, then Bootstrap JS -->
+		<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+		<script type='text/javascript' src='https://www.bing.com/api/maps/mapcontrol?key=AqSoWe-92XVgizNmeaVv24-BKq0NE_PWbSvT9pqAQpZjKcavsW5jSfsiMUmVbP0G&callback=loadMap' async defer></script>
+	</body>
+	</html>
